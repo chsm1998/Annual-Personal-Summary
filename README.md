@@ -101,5 +101,111 @@ java基本就那么多了，接下来说下前端老师讲的比较少
 JavaEE基本就这么多了，接下来讲框架，框架感觉写的注释比代码还多，
 
 1.Struts2
->踩过的坑
-老师讲课用的是2.3但我用的是2.5
+>踩过的坑，我学的时候最新版是2.5.13所以用的也是这个版本，我这个人就喜欢用最新版的对象，后面的hibernate和Spring也一样使用的都是学习时发布的最新版本
+①.struts2-rest-plugin-2.5.13.jar这个包不要放到lib目录下否则会404
+②.通配符会失效
+解决方法：Struts的配置文件加上
+```xml
+<global-allowed-methods>regex:.*</global-allowed-methods>
+```
+>③.配置Struts时配置项有顺序
+
+> * result-types
+> * interceptors
+> * default-interceptor-ref
+> * default-action-ref
+> * default-class-ref
+> * global-results
+> * global-exception-mappings
+
+接下来大致讲一下Struts2
+>1.核心部分就是拦截器,不过我觉得值栈也是核心，因为没有这个东西很多操作的原理都理不清，但是老师居然没讲你敢信？？？就以模型驱动来说，不讲值栈写起来完全是一头雾水，值是怎么赋的都不知道，只知其然而不知其所以然学了等于没学。
+大致流程：
+客户端发出请求——>被Struts2拦截——>找到对应Action的对应方法——>执行并根据返回值做出响应
+上面流程走通Struts2的基本概念基本也就理清了，了解了属性驱动和模型驱动后，基本上大部分流程都能走通了
+2.OGNL基本忘光了，大部分操作都可以通过EL表达式代替
+3.通用标签：好处就是可以自动回显表单，坏处就是有样式，（个人感觉鸡肋）所以我一般不用，jstl就足够了
+4.paramsPrepareParamsStack唯一了解过的一个拦截器，可以对效率进行一定优化，通过该拦截器可以在需要的时候才创建对象减少资源浪费，需要实现Preparable接口，并重写其中的prepare()，实现该接口后还会调用两个方法：
+prepareActionMethodName和prepareDoActionMethodName
+注：ActionMethodName代表的是action类对应的方法的名字
+通过该接口可以减少创建对象的次数，不过我一般不用，因为记不住.....必须看以前代码才能写出了
+
+下面来说说hibernate，我学的时候版本是hibernate5
+>先说说注意事项
+老师讲的是hibernate3，网上视频是hibernate4，我用的是hibernate5。而且这三种版本得到sessionFactory的方式还都不相同，这就让人很烦躁。不过还好有百度和谷歌。
+
+hibernate3获取sessionFactory方式
+>最简单的一种方式写起来衡爽
+
+```java
+SessionFactory sessionFactory = null;
+//获取配置信息
+Configuration configuration = new Configuration().configure();
+//解析并建立session工厂
+sessionFactory = configuration.buildSessionFactory();
+```
+hibernate5获取sessionFactory方式
+>比较长比hibernate3难记多了
+
+```java
+//注册服务 步骤1.调用注册服务生成器，2.读取配置，3生成服务
+StandardServiceRegistry  serviceRegistry=new StandardServiceRegistryBuilder().configure().build(); 
+//获取session工厂  步骤1.创建元数据来源参数为注册服务，2.生成元数据，3生成session工厂
+SessionFactory sessionFactory=new MetadataSources(serviceRegistry).buildMetadata().buildSessionFactory();
+//获取当前session，若第一次访问则创建
+Session session=sessionFactory.getCurrentSession();
+```
+>注：hibernate3的方式在hibernate5仍然可以使用（绝大部分情况下，官方文档说的），但在hibernate4中不能使用，估计hibernate5应该把方法重构了
+
+>1.持久化对象的id不能更改，因为这是session缓存与数据库对应的唯一标识，更改id将会导致异常
+
+>2.在ID生成方式为native的情况下在save之前设置id无效，之后设置id抛出异常
+
+>3.通过get获取到对象后立即关闭session再使用该对象不会抛出异常，如果使用的是load方法则会抛出异常，因为load是延迟检索（返回的是代理对象），只有在用到当前对象时才会去查询数据，由于session关闭所以导致了懒加载异常
+
+>4.持久化对象不需要显示调用update方法，游离对象需要
+
+>5.如果对游离对象重新设置了不存在的ID，之后再执行update那么会抛出OptimisticLockException（乐观锁异常）若为存在的ID则会正常更新
+
+>6.如果在游离对象更新之前，通过get获取了ID相同的对象那么会抛出NonUniqueObjectException（不是唯一的对象异常），如果是通过load获取的那么只要不调用获取的对象则不会抛出异常，若调用则会与get一样抛出异常，因为session缓存中已有了一个相同ID的缓存对象
+
+>还有很多就不一一细说了，不然我估计今晚写不完总结了......
+
+>hibernate大部分方法使用都挺简单的，就是配置一对多，多对多等对应关系的时候比较绕，很多对应关系都是对着抄不知道为什么这么写，时间关系只贴结论，不讲分析过程了
+结论：
+set中的key的column代表的是外键，外键关联列为当前类所对应的表的ID字段
+many-to-one中的column代表的是也外键，外键关联列为class所指向对应类的表的ID字段
+
+hibernate暂时先讲这么多，虽然还有很多东西没说，但是再说下去可能17年之前我就写不完了...
+
+接下来简单的说下Spring，版本是Spring5（主要是难的也不会。。。。）
+
+>1.核心IOC/DI 和 AOP
+IOC控制反转，简单理解就是将类交给Spring管理，将控制权交给Spring（反正我是这么理解的）
+DI依赖注入，与IOC一个意思，控制权在Spring的IOC容器手上，当需要某个对象时有Spring帮我们注入就好了
+AOP面向切面编程:原理就是动态代理，切面代表的就是某一组而非某一个，比如权限过滤，日志等包括大批量的重复代表，且需要作用到多个方法上时就可以使用AOP
+2.声明式事务：用起来很爽的一个东西，使用xml配置的话比较繁琐，注解很轻松，xml的优势在于可以选择一组方法，不过个人还是喜欢注解，因为写起来方便，不用记过多的xml配置
+
+关于声明式事务在和hibernate整合的时候还发生了一个bug，花了我整整半天时间才解决，使用时发现声明式事务没起作用，一开始以为eclipse问题，后来换到IDEA把所有代码重写一遍，发现还是没用，然后想会不会是版本不兼容，比较两个框架都是最新版本谁也不知道会不会有坑，百度了很久还是没有结果，然后试着不用hibernate了，直接使用jdbc，因为以前使用jdbc声明式事物是有用的，但是哪怕换成了jdbcSpring的声明式事物还是没起作用，这时候我的内心是崩溃的，后来记起来网上有人说过可能是mysql引擎的问题因为MyISAM是没法使用事务的，一开始从来没往这边想过因为MySQL默认引擎就是InnoDB啊，后来去查了下建表语句发现ENGINE=MyISAM，至此bug终于解决了。都是hibernate自动建表惹的祸，我也不知道为什么建表默认为MyISAM。
+
+关于Java方面的基本就这么多了
+这学期除了Java还有oracle，没怎么听过感觉太简单了，除了那种很恶心的查询语句，基本的看看书就差不多了。
+
+本来还想谈谈学习的前端知识的的不过现在已经11点了，所以还是算了....
+
+>个人见解
+不知道为什么很少有前端系统化的教学，大部分都是点到即止，前端相对于后端而言感觉是一个很好入门的点，至少比后端更容易得到成果，对于初学者哪怕再不济一天时间用前端展示个hello world还是没问题的（可能大部分人都能做出个层次分明的页面了），而后端就拿java来说，可能配个环境变量都配不好，前端学习两个月可能已经能够做一个不错的页面了，而后端可能还在和命令行大交道，而且就目前来说前端几乎是不可取代，你后端可以不用java，但你前端不可能不写HTML、CSS、JS、而且前端更容易在早期得到成就感，个人认为前端相对于初学者比后端更好，不管是作为兴趣还是职业。
+
+
+谈谈未来吧
+>未来展望
+18年的目标首先是把SpringMVC和MyBatis学完，如何就是学数据结构和算法了，虽然看起来很吃力但是没办法啊，总得提升自己的深度，混吃等死的日子虽然很舒服但是我没有混吃等死的资本。还有就是6月底之前打算完成一款游戏，素材什么的已经收集好了，前端页面已经写了一部分了，最晚八月份应该可以写完吧，个人是希望六月份完工的。
+
+
+结语
+
+文笔不行，可能写的比较乱，各位将就着看吧（第一次使用Markdown）
+
+>不知不觉这篇总结也写了将近5个小时，2017也已结接近尾声了，马上就2018年了，学编程至今不过一年半的时间却感觉过了好久，想想过去的自己，感觉还是过于懒惰了，终究还是过于安逸，对自己的未来也感到比较迷茫，希望2018年的自己能够更加勤奋吧，我相信明天会更好。
+
+2017年12月31日
